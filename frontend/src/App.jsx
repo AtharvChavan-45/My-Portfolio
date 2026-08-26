@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Mail,
     FileText,
@@ -14,18 +14,12 @@ import {
     X,
     Award,
     Briefcase,
-    GraduationCap,
-    Code,
-    Terminal,
     Brain,
-    Layout,
     MessageSquare,
     Search,
     Filter,
     LogOut,
-    Flame,
     Database,
-    Sparkles,
     Eye,
     BarChart2
 } from 'lucide-react';
@@ -58,7 +52,7 @@ const DEVICON_MAP = {
     "Html, bootstrap5, css": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/bootstrap/bootstrap-original.svg"
 };
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api';
 
 function App() {
     // Theme state
@@ -74,7 +68,6 @@ function App() {
     // Navigation and admin states
     const [currentTab, setCurrentTab] = useState('portfolio'); // 'portfolio' or 'admin'
     const [adminToken, setAdminToken] = useState(() => localStorage.getItem('adminToken') || '');
-    const [adminUser, setAdminUser] = useState('admin');
     const [usernameInput, setUsernameInput] = useState('');
     const [passwordInput, setPasswordInput] = useState('');
     const [loginError, setLoginError] = useState('');
@@ -121,14 +114,13 @@ function App() {
         }
     }, [darkMode]);
 
-    // Fetch feedback if token exists
-    useEffect(() => {
-        if (adminToken && currentTab === 'admin') {
-            fetchFeedbacks();
-        }
-    }, [adminToken, currentTab]);
+    const handleLogout = useCallback(() => {
+        setAdminToken('');
+        localStorage.removeItem('adminToken');
+        setSelectedFeedback(null);
+    }, []);
 
-    const fetchFeedbacks = async () => {
+    const fetchFeedbacks = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE}/admin/feedback`, {
                 headers: {
@@ -145,7 +137,15 @@ function App() {
         } catch (error) {
             console.error('Error fetching feedback:', error);
         }
-    };
+    }, [adminToken, handleLogout]);
+
+    // Fetch feedback if token exists
+    useEffect(() => {
+        if (adminToken && currentTab === 'admin') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            fetchFeedbacks();
+        }
+    }, [adminToken, currentTab, fetchFeedbacks]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -166,14 +166,9 @@ function App() {
                 setLoginError(data.message || 'Invalid credentials');
             }
         } catch (error) {
+            console.error('Login connection error:', error);
             setLoginError('Could not connect to the backend server.');
         }
-    };
-
-    const handleLogout = () => {
-        setAdminToken('');
-        localStorage.removeItem('adminToken');
-        setSelectedFeedback(null);
     };
 
     // Form inputs handler
@@ -224,6 +219,7 @@ function App() {
                 setFormStatus({ type: 'error', message: data.message || 'Failed to submit feedback. Please check inputs.' });
             }
         } catch (error) {
+            console.error('Feedback submission error:', error);
             setFormStatus({ type: 'error', message: 'Could not submit. Make sure the server backend is running.' });
         } finally {
             setFormLoading(false);
@@ -256,6 +252,7 @@ function App() {
                 setReplyStatus(`Error: ${data.message}`);
             }
         } catch (error) {
+            console.error('Send reply error:', error);
             setReplyStatus('Error connecting to reply service.');
         } finally {
             setSendingReply(false);
