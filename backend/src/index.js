@@ -23,7 +23,8 @@ connectDB()
         console.log("Error  :", error);// here "error" -> this is event Whenever an error event happens, execute this callback.
         throw error; //I received this error, but I don’t want to silently ignore it. Throw it again
     })
-    app.listen(process.env.PORT || 8000, ()=>{ //Start the server and listen for incoming requests on this port.
+    const PORT = process.env.PORT || 8000;
+    app.listen(PORT , "0.0.0.0", ()=>{ //Start the server and listen for incoming requests on this port.
         console.log(`Server is running at port ${process.env.PORT}`);
     });
 })
